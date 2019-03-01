@@ -42,19 +42,22 @@ export class ListInterests extends React.Component {
                         dataSource={this.props.data}
                         renderItem={(item, index) => (
                             <List.Item key={index}
-
                             >
                                 <List.Item.Meta
-                                    avatar={<Avatar src="https://zos.alipayobjects.com/rmsportal/ODTLcjxAfvqbxHnVXCYX.png" />}
-                                    title={<a>{item.name}</a>}
-                                    description={item.description}
+                                    // avatar={<Avatar src="https://zos.alipayobjects.com/rmsportal/ODTLcjxAfvqbxHnVXCYX.png" />}
+                                    title={<button
+                                        className="liked-button"
+                                        onClick = {() => { this.props.clickInterest(item.location_id)}}
+                                    >
+                                        <a>{item.name}</a>
+                                    </button>}
+                                    description={item.formattedAddress}
                                 />
-
 
                                 <div>
                                     <button
                                         className="liked-button"
-                                        onClick = {() => { this.props.clickLiked(item.id)}}
+                                        onClick = {() => { this.props.clickLiked(item.location_id)}}
                                     >
                                         {item.liked === 'TRUE' ? <Icon type="like" theme="filled" /> : <Icon type="like"/>}
                                     </button>

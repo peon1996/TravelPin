@@ -3,6 +3,8 @@ package rpc;
 
 
 import algorithm.algorithm;
+import db.DBConnection;
+import db.DBConnectionFactory;
 import entity.Interest;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -13,30 +15,31 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
-@WebServlet(name = "optimizeRoute")
+@WebServlet("/optimizeroute")
 public class optimizeRoute extends HttpServlet {
 
     public optimizeRoute(){
         super();
     }
-
+    private Connection conn;
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        JSONObject inputJSON = RpcHelper.readJSONObject(request);
-        int days = inputJSON.getInt("days");
-        List<Interest> pinnedInterests = new ArrayList<>();
-        JSONArray pinnedInterestsJSONArray = inputJSON.getJSONArray("pinnedInterests");
-        for(int i = 0; i<pinnedInterestsJSONArray.length(); i++){
-            JSONObject tempObject = (JSONObject) pinnedInterestsJSONArray.get(i);
-            String pinnedInteretId = tempObject.getString("interestsId");
-            Interest tempInterest = RpcHelper.interestName_to_Interest(pinnedInteretId);
-            pinnedInterests.add(tempInterest);
-        }
-        algorithm algorithmCollection = new algorithm();
+        DBConnection connection = DBConnectionFactory.getConnection();
         try{
+
+            JSONObject inputJSON = RpcHelper.readJSONObject(request);
+            int days = inputJSON.getInt("days");
+            JSONArray pinnedInterestsJSONArray = inputJSON.getJSONArray("pinnedInterests");
+            algorithm algorithmCollection = new algorithm();
+            List<Interest> pinnedInterests = connection.getInterestsByLocationId(pinnedInterestsJSONArray);
+            System.out.println(pinnedInterests);
             List<List<Interest>> interestArrangements = algorithmCollection.optimizeRoute(pinnedInterests, days);
+            System.out.println(interestArrangements);
             JSONArray arrangements = new JSONArray();
             for(List<Interest> interests : interestArrangements){
                 JSONArray arrangement = new JSONArray();

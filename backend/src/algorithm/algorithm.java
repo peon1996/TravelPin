@@ -1,9 +1,9 @@
 package algorithm;
 
-import javax.ejb.Schedule;
-import java.util.ArrayList;
 import java.util.List;
-        package algorithm;
+import java.util.ArrayList;
+import entity.Interest;
+import entity.Interest.InterestBuilder;
 
 // Route Optimization Algorithm
 // Zhenyu Pan
@@ -13,6 +13,22 @@ import java.util.List;
 
 // 优化目标：保证用户在整个旅行中，景点均匀分配到每天，不至于某天特别累，某天特别闲；并且保证每天游玩的景点距离之间较近，不至于前后奔波劳累；
 //          还需要确保用户去景点时，景点开门营业，并且能充分游玩，不至于吃闭门羹，或者被关门轰出
+
+// (try later)  Option 1: Vehicle Routing Algorithm
+// (need AI/ML) Option 2: Clustering Algorithm
+//    ==>       Option 3: Develop Route Optimization Algorithm on our own
+
+// Algorithm:
+// Step 1: briefly check if selection is valid: based on travel days and the numbers of interests, check if it is possible to generate schedule.
+//         the number of interests should be smaller than the maximum possible interests that can be visited during travel
+//         briefly check the number of interests vs days (approximately 2-3 interests per day)
+// Step 2: calculate distances between each interests. make sure shortest travel distance between interests each day
+//         using BFS. find the shortest distance of two dots then put them into one day slot;
+//         continue BFS for the rest of the dots with same procedure;
+// Step 3: put each interests into different days slots: morning(08-12 4h)/afternoon(14-18 4h)/evening(20-22 2h)
+//         check time.open and time.close is valid for that day's visit
+//         [optimize shortest distance first, if cannot meet demand then give up distance and ask for optimized time schedule]
+//         this also can fail to generate if interest's visit time cannot be put into slots
 
 // eg.
 // input: travel days: 3 days;
@@ -108,57 +124,132 @@ import java.util.List;
 // ==> display them on google map with routes, pictures and chart
 
 
-// Algorithm:
-// Step 1: briefly check if selection is valid: based on travel days and the numbers of interests, check if it is possible to generate schedule.
-//         the number of interests should be smaller than the maximum possible interests that can be visited during travel
-//         briefly check the number of interests vs days (approximately 2-3 interests per day)
-// Step 2: calculate distances between each interests. make sure shortest travel distance between interests each day
-//         using BFS. find the shortest distance of two dots then put them into one day slot;
-//         continue BFS for the rest of the dots with same procedure;
-// Step 3: put each interests into different days slots: morning(08-12 4h)/afternoon(14-18 4h)/evening(20-22 2h)
-//         check time.open and time.close is valid for that day's visit
-//         [optimize shortest distance first, if cannot meet demand then give up distance and ask for optimized time shedule]
-//         this also can fail to generate if interest's visit time cannot be put into slots
-
-
 public class algorithm {
     // optimize travel route
-    public List<List<interests>> optimizeRoute(List<interests> pinnedInterests, int days) {
+    public List<List<Interest>> optimizeRoute(List<Interest> pinnedInterests, int days) {
 
-        List<List<interests>> result = new ArrayList<>();
-
+        List<List<Interest>> result = new ArrayList<>();
+        System.out.println("algorithm in src was called");
+        System.out.println(pinnedInterests);
         // calculate total visit time and check if valid
         int dailyVisitTime = 10;
         int totalVisitTime = days * dailyVisitTime;
         int pinnedVisitTime = 0;
-        for (interests interest : pinnedInterests) {
-            pinnedVisitTime += interest.time.visit;
+        for (Interest interest : pinnedInterests) {
+            pinnedVisitTime += interest.getSuggestVisitTime();
         }
         if (pinnedVisitTime > totalVisitTime) {
+            System.out.println("Too many interests. Schedule is too tight. Please re-pin interests!");
             return null;
-            System.out.println("Schedule is too tight");
         }
 
-        // briefly check the total number of interests / days rate. Approximately 2-3 interests per day is good
-        int numberOfInterests = 0;
-        for (interests interest : pinnedInterests) {
-            numberOfInterests++;
-        }
+        // briefly check the "total number of interests / days" rate. Approximately 2-3 interests per day is good
+        // then implement route optimization algorithms in each cases
+        int numberOfInterests = pinnedInterests.size();
         if (numberOfInterests / days >= 3) {
-            // TODO. It still has chance to be done. Need to double check open time and close time
+            // TODO: It still has chance to be done. Need to double check open time and close time
+            System.out.println("TODO: It still has chance to be done. Need to double check open time and close time");
+            return null;
 
-        } else if {numberOfInterests / days < 2} {
+        } else if (numberOfInterests / days < 2) {
+            System.out.println("numberOfInterests / days < 2");
             // one interest per day. final days may apply free time
+
+            // e.g.
+            // 5 interests: (a b c d e}
+            // 3 days: {{} {} {}}
+            // 1st step: {{a} {b} {c}}
+            // buffer: {a b c}
+            // extra to be scheduled: {d e} total 5-3=2
+            // 2nd step: find closest of d and e from {a b c}
+            // {b d} d scheduled into {b} day
+            // buffer-b = {a c}
+            // {c e} e scheduled into {c} day
+            // final result: {{a} {b d} {c e}}
+
+            // put one interest in each day first
+            List<Interest> buffer = new ArrayList<>(); // to store scheduled interests in 1st step
+            for (int i = 0; i < days; i++) {
+                List<Interest> daily = new ArrayList<>();
+                daily.add(pinnedInterests.get(i));
+                buffer.add(pinnedInterests.get(i));
+                result.add(daily);
+            }
+            // post-check if there are extra interests. put them in each days again. check closest interests and put extra into that slot
+            if (days < numberOfInterests) {
+                int numberOfExtraInterests = numberOfInterests - days;
+                for (int i = numberOfExtraInterests; i <= days; i++) {
+                    Interest spot = pinnedInterests.get(i + 1);
+                    Interest closest = findClosest(buffer, spot);
+                    List<Interest> specificDay = new ArrayList<>();
+                    specificDay.add(closest);
+                    result.get(result.indexOf(specificDay)).add(spot);
+                    buffer.remove(closest);
+                }
+            }
 
         } else { // numberOfInterests / days >= 2 && numberOfInterests / days <= 3
             // two interests per day. final days may apply three interests per day
 
+            // e.g.
+            // 8 interests: (a b c d e f g h}
+            // 3 days: {{} {} {}}
+            // 1st step: {{a} {} {}}
+            // find closest to a in {b c d e f} => e
+            // {{a e} {} {}}
+            // ...
+            // {{a e} {c f} {b g}}
+            // extra 2 interests: {d h} put these two into two of the three days
+            // result: {{a e h} {c f} {b g d}}
+
+            // put two close interests in each day first
+            List<List<Interest>> buffer = new ArrayList<>(); // to store scheduled list of list of interests in 1st step
+            for (int i = 0; i < days; i++) {
+                List<Interest> daily = new ArrayList<>();
+                Interest one = pinnedInterests.get(0);
+                daily.add(one);
+                Interest two = findClosest(pinnedInterests, one);
+                daily.add(two);
+                pinnedInterests.remove(one);
+                pinnedInterests.remove(two);
+                result.add(daily);
+                buffer.add(daily);
+            }
+            // post-check if there are extra interests. put them in each days again. check closest interests and put extra into that slot
+            if ((days * 2) < numberOfInterests) {
+                int numberOfExtraInterests = numberOfInterests - days * 2;
+                for (int i = 0; i < numberOfExtraInterests; i++) {
+                    // calculate total distance of extra interest to everyday's two interests and find the closest
+                    List<Interest> optimizeDay = result.get(result.indexOf(findClosestDaily(buffer, pinnedInterests.get(i))));
+                    optimizeDay.add(pinnedInterests.get(i)); // add one extra interest to that optimize day
+                    buffer.remove(optimizeDay);
+                }
+            }
         }
 
         // generate route
-
-
         return result;
+    }
+
+    // Convert longitude to a X value in World Coordinates
+    private static final double lon2x(double lon) {
+        return (lon + 180f) / 360f * 256f;
+    }
+
+    // Convert latitude to a Y value in World Coordinates
+    private static final double lat2y(double aLat) {
+        return ((1 - Math.log(Math.tan(aLat * Math.PI / 180) + 1 / Math.cos(aLat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, 0)) * 256;
+    }
+
+    // Convert X value in World Coordinates to longitude
+    private static final double x2lng(double x) {
+        return x * 360 / 256 - 180;
+    }
+
+    // Convert Y value in World Coordinates to latitude
+    private static final double y2lat(double y) {
+        double z = Math.pow(Math.E, (2 * Math.PI * (1 - y / 128)));
+        return Math.asin((z - 1) / (z + 1)) * 180 / Math.PI;
     }
 
     // calculate straight distance between two spots on map spot1(x1, y1), spot2(x2, y2)
@@ -166,38 +257,164 @@ public class algorithm {
         return Math.sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1));
     }
 
-    // get the closest spot of one given spot
-    private interest findClosest(List<interests> pinnedInterests, interest spot) {
+    // distance between candidate and spot
+    private double distance(Interest candidate, Interest spot) {
+        double candidateX = lon2x(candidate.getLng());
+        double candidateY = lat2y(candidate.getLat());
+        double spotX = lon2x(spot.getLng());
+        double spotY = lat2y(spot.getLat());
+        return calculateDistance(candidateX, candidateY, spotX, spotY);
+    }
+
+    // get the closest interest of one given interest
+    private Interest findClosest(List<Interest> pinnedInterests, Interest spot) {
         double min = Integer.MAX_VALUE;
-        interest closest = null;
-        pinnedInterests.remove(spot);
-        for (interest candidate : pinnedInterests) {
-            double distance = calculateDistance(candidate.x, candidate.y, spot.x, spot.y);
+        Interest closest = null;
+        pinnedInterests.remove(spot); // to avoid self to self which is 0 distance
+        for (Interest candidate : pinnedInterests) {
+            double distance = distance(candidate, spot);
+
             if (distance < min) {
-                closet = candidate;
+                closest = candidate;
                 min = distance;
             }
         }
         return closest;
     }
 
-    // calculate travel expense
-    public int calculateExpense(List<List<interests>> result, int persons) {
-        int sum = 0;
-        for (List<interests> daily : result) {
-            for (interests interest : daily) {
-                sum += interest.price;
+    // get the total distance and find the shortest of one spot to list of list of interests
+    private List<Interest> findClosestDaily(List<List<Interest>> preResult, Interest spot) {
+        double min = Integer.MAX_VALUE;
+        int index = 0;
+        double totalDistanceDaily = 0;
+        for (List<Interest> day : preResult) {
+            for (Interest candidate : day) {
+                totalDistanceDaily += distance(candidate, spot);
+            }
+            if (totalDistanceDaily < min) {
+                index = preResult.indexOf(day);
+                min = totalDistanceDaily;
             }
         }
-        return sum * persons;
+        return preResult.get(index);
     }
 
-    // generete travel schedule
-    public List<Schedule> generateSchedule(List<List<interests>> result) {
-        // TO DO
+    // helper function for tests
+    private void printResult(List<List<Interest>> result){
+        System.out.print("{");
+        for (List<Interest> daily : result) {
+            System.out.print("{");
+            for (Interest interest : daily) {
+                System.out.print(interest.getName() + " ");
+            }
+            System.out.print("}");
+        }
+        System.out.println("}");
     }
+
+//    // calculate travel expense
+//    public int calculateExpense(List<List<Interest>> result, int persons) {
+//        int sum = 0;
+//        for (List<Interest> daily : result) {
+//            for (Interest interest : daily) {
+//                sum += interest.price;
+//            }
+//        }
+//        return sum * persons;
+//    }
+
+
+//    // generate travel schedule
+//    public List<Schedule> generateSchedule(List<List<Interest>> result) {
+//        // TODO
+//    }
+
 
     public static void main(String[] args) {
+        // list of pinned interests by user
+        List<Interest> pinnedInterests1 = new ArrayList<>();
+        List<Interest> pinnedInterests2 = new ArrayList<>();
+        List<Interest> pinnedInterests3 = new ArrayList<>();
 
+        // 5 interests with name and lat lng for tests
+        InterestBuilder builder1 = new InterestBuilder();
+        builder1.setName("StatueOfLiberty");
+        builder1.setLat(40.6892534);
+        builder1.setLng(-74.0466891);
+        builder1.setSuggestVisitTime(4.0);
+        pinnedInterests1.add(builder1.build());
+        pinnedInterests2.add(builder1.build());
+        pinnedInterests3.add(builder1.build());
+
+        InterestBuilder builder2 = new InterestBuilder();
+        builder2.setName("EmpireStateBuilding");
+        builder2.setLat(40.7485492);
+        builder2.setLng(-73.9879522);
+        builder2.setSuggestVisitTime(3.0);
+        pinnedInterests1.add(builder2.build());
+        pinnedInterests2.add(builder2.build());
+        pinnedInterests3.add(builder2.build());
+
+        InterestBuilder builder3 = new InterestBuilder();
+        builder3.setName("BrooklynBridge");
+        builder3.setLat(40.7058134);
+        builder3.setLng(-73.9981622);
+        builder3.setSuggestVisitTime(2.0);
+        pinnedInterests1.add(builder3.build());
+        pinnedInterests2.add(builder3.build());
+        pinnedInterests3.add(builder3.build());
+
+        InterestBuilder builder4 = new InterestBuilder();
+        builder4.setName("911Memorial");
+        builder4.setLat(40.708788);
+        builder4.setLng(-74.0095311);
+        builder4.setSuggestVisitTime(3.0);
+        pinnedInterests1.add(builder4.build());
+        pinnedInterests2.add(builder4.build());
+        pinnedInterests3.add(builder4.build());
+
+        InterestBuilder builder5 = new InterestBuilder();
+        builder5.setName("5thAvenue");
+        builder5.setLat(40.7744186);
+        builder5.setLng(-73.9678064);
+        builder5.setSuggestVisitTime(3.0);
+        pinnedInterests1.add(builder5.build());
+        pinnedInterests2.add(builder5.build());
+        pinnedInterests3.add(builder5.build());
+
+        algorithm test = new algorithm();
+
+        System.out.println("===============================================================================");
+
+        // test case one: 5 interests in 1 day
+        System.out.println("Test case one: 5 interests in 1 day");
+        System.out.println("Expected result: ");
+        System.out.println("Too many interests. Schedule is too tight. Please re-pin interests!");
+        System.out.println("Real result: ");
+        List<List<Interest>> result1;
+        result1 = test.optimizeRoute(pinnedInterests1, 1);
+        System.out.println("===============================================================================");
+
+
+        // test case two: 5 interests in 2 days
+        System.out.println("Test case two: 5 interests in 2 days");
+        System.out.println("Expected result: ");
+        System.out.println("{{StatueOfLiberty 911Memorial BrooklynBridge }{EmpireStateBuilding 5thAvenue }}");
+        System.out.println("Real result: ");
+        List<List<Interest>> result2;
+        result2 = test.optimizeRoute(pinnedInterests2, 2);
+        test.printResult(result2);
+        System.out.println("===============================================================================");
+
+
+        // test case three: 5 interests in 3 days
+        System.out.println("Test case three: 5 interests in 3 days");
+        System.out.println("Expected result: ");
+        System.out.println("{{StatueOfLiberty }{EmpireStateBuilding 5thAvenue }{BrooklynBridge 911Memorial }}");
+        System.out.println("Real result: ");
+        List<List<Interest>> result3;
+        result3 = test.optimizeRoute(pinnedInterests3, 3);
+        test.printResult(result3);
+        System.out.println("===============================================================================");
     }
 }
