@@ -20,9 +20,7 @@ export class LeftExpansionPanel extends React.Component {
         days: 1,
         collapsed: false,
         pixelPosition: '400px',
-        plan:[["New York City Fire Museum","The Public Theater","Angelika Film Center & Café - New York"]
-        ,["IPIC New York City","Jane's Carousel"]
-        ,["National Museum of the American Indian","9/11 Tribute Museum","Regal Cinemas Battery Park 11","The Public Theater"]]
+        plan:[[]]
     }
 
 
@@ -128,7 +126,6 @@ export class LeftExpansionPanel extends React.Component {
     }
     getPlan = () => {
         const {plan} = this.state;
-        console.log(plan)
         return <PlanPanel
             plan={plan}
             directions={this.props.directions}
@@ -152,7 +149,7 @@ export class LeftExpansionPanel extends React.Component {
         console.log(favorite)
         return (
 
-            <div  className={"leftExpansionPanel"}>
+            <div  className="leftExpansionPanel">
                 <div>
                     <Button
                         type="primary"
@@ -172,7 +169,7 @@ export class LeftExpansionPanel extends React.Component {
                         inlineCollapsed={this.state.collapsed}
                         style={MenuStyle}
                     >
-                        <Tabs defaultActiveKey="1">
+                        <Tabs defaultActiveKey="1" style={{width : "100%", overflow: "hidden"}}>
 
                             <TabPane tab="Interest" key="1">
                                 <ListInterests
