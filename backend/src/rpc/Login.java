@@ -93,6 +93,9 @@ public class Login extends HttpServlet {
             if(isLoggedIn) {
                 response.setStatus(200);
                 responseObj.put("status", "OK").put("user", user_Id);
+                generateToken gt = new generateToken();
+                String tokenStr = gt.createJWT(user_Id, gt.ISSUER, username, gt.EXPIRE_TIME);
+                responseObj.put("token", tokenStr);
             }else{
                 response.setStatus(403);
                 responseObj.put("status", "User Doesn't Exist");

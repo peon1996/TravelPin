@@ -19,7 +19,7 @@ class NormalLoginForm extends React.Component {
                 }).then((response) => {
                     console.log("response" + response);
                     if (response.ok) {
-                        return response.text();
+                        return response.token;
                     }
                     throw new Error(response.statusText);
                 }).then((data) => {

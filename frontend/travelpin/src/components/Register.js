@@ -41,6 +41,35 @@ class RegistrationForm extends React.Component {
         });
     }
 
+    // handleSubmit = (e) => {
+    //     e.preventDefault();
+    //     this.props.form.validateFieldsAndScroll((err, values) => {
+    //         if (!err) {
+    //             console.log('Received values of form: ', values);
+    //             // send request
+    //             fetch(`${API_ROOT}/signup`, {
+    //                 method: 'POST',
+    //                 body: JSON.stringify({
+    //                     username: values.username,
+    //                     password: values.password,
+    //                 }),
+    //             }).then((response) => {
+    //                 if (response.ok) {
+    //                     message.success('Registration Succeed!');
+    //                     this.props.history.push('/login');
+    //                 } else {
+    //                     throw new Error(response.statusText);
+    //                 }
+    //                 throw new Error(response.statusText);
+    //             })
+    //                 .catch((e) => {
+    //                     console.log(e);
+    //                     message.error('Registration Failed.');
+    //                 });
+    //         }
+    //     });
+    // }
+
 
     handleConfirmBlur = (e) => {
         const value = e.target.value;
